@@ -50,6 +50,8 @@ import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
 public class StabilityTestDataPublisher extends TestDataPublisher {
 	
+	public static final boolean DEBUG = true; 
+	
 	@DataBoundConstructor
 	public StabilityTestDataPublisher() {
 	}
@@ -61,7 +63,9 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		
 		Map<String,CircularStabilityHistory> stabilityHistoryPerTest = new HashMap<String,CircularStabilityHistory>();
 		
-		for (hudson.tasks.test.TestResult result: getClassAndCaseResults(testResult)) {
+		Collection<hudson.tasks.test.TestResult> classAndCaseResults = getClassAndCaseResults(testResult);
+		debug("Found " + classAndCaseResults.size() + " test results", listener);
+		for (hudson.tasks.test.TestResult result: classAndCaseResults) {
 			
 			CircularStabilityHistory history = getPreviousHistory(result);
 			
@@ -84,6 +88,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 					stabilityHistoryPerTest.remove(result.getId());
 				}
 			} else if (isFirstTestFailure(result, history)) {
+				debug("Found failed test " + result.getId(), listener);
 				int maxHistoryLength = getDescriptor().getMaxHistoryLength();
 				CircularStabilityHistory ringBuffer = new CircularStabilityHistory(maxHistoryLength);
 				
@@ -96,6 +101,12 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		}
 		
 		return new StabilityTestData(stabilityHistoryPerTest);
+	}
+	
+	private void debug(String msg, BuildListener listener) {
+		if (StabilityTestDataPublisher.DEBUG) {
+			listener.getLogger().println(msg);
+		}
 	}
 
 	private CircularStabilityHistory getPreviousHistory(hudson.tasks.test.TestResult result) {

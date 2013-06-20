@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
@@ -52,7 +53,7 @@ import hudson.tasks.junit.TestResultAction.Data;
 import hudson.util.DescribableList;
 
 public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
-
+	
 	public FixedMavenTestDataPublisher(
 			DescribableList<TestDataPublisher, Descriptor<TestDataPublisher>> testDataPublishers) {
 		super(testDataPublishers);
@@ -61,10 +62,14 @@ public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 	@Override
 	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
 			BuildListener listener) throws InterruptedException, IOException {
+
+		debug("FixedMavenTestDataPublisher perform", listener);
 		
 		MavenModuleSetBuild msb = (MavenModuleSetBuild) build;
 		
 		Map<MavenModule, MavenBuild> moduleLastBuilds = msb.getModuleLastBuilds();
+		
+		debug("Found " + moduleLastBuilds.size() + " module builds", listener);
 		
 		for (MavenBuild moduleBuild : moduleLastBuilds.values()) {
 		
@@ -90,6 +95,12 @@ public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 		return true;
 	}
 	
+	private void debug(String msg, BuildListener listener) {
+		if (StabilityTestDataPublisher.DEBUG) {
+			listener.getLogger().println(msg);
+		}
+	}
+
 	@Extension
 	public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
