@@ -34,7 +34,11 @@ import java.util.Map;
 
 import jenkins.model.Jenkins;
 
-
+/**
+ * {@link Data} for the test stability history.
+ * 
+ * @author ckutz
+ */
 @SuppressWarnings("deprecation")
 class StabilityTestData extends Data {
 	

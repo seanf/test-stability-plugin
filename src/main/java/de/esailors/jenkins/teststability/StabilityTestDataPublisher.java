@@ -48,6 +48,11 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
+/**
+ * {@link TestDataPublisher} for the test stability history.
+ * 
+ * @author ckutz
+ */
 public class StabilityTestDataPublisher extends TestDataPublisher {
 	
 	public static final boolean DEBUG = true; 

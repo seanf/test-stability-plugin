@@ -29,6 +29,11 @@ import hudson.model.HealthReport;
 import hudson.tasks.junit.TestAction;
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
+/**
+ * {@link TestAction} for the test stability history.
+ * 
+ * @author ckutz
+ */
 class StabilityTestAction extends TestAction {
 
 	private CircularStabilityHistory ringBuffer;

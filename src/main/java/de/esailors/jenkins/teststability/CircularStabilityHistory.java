@@ -33,6 +33,13 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
+/**
+ * Circular history of test results.
+ * <p>
+ * Old records are dropped when <code>maxSize</code> is exceeded.
+ * 
+ * @author ckutz
+ */
 public class CircularStabilityHistory {
 	
 	  private Result[] data;

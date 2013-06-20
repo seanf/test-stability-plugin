@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
@@ -52,6 +51,14 @@ import hudson.tasks.junit.TestDataPublisher;
 import hudson.tasks.junit.TestResultAction.Data;
 import hudson.util.DescribableList;
 
+/**
+ * Fixed {@link MavenTestDataPublisher}.
+ * The standard {@link MavenTestDataPublisher} from Jenkins (at least up to 1.520) just doesn't work.
+ * <p>
+ * See also https://github.com/jenkinsci/jenkins/pull/810
+ * 
+ * @author ckutz
+ */
 public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 	
 	public FixedMavenTestDataPublisher(
