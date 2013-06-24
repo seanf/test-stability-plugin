@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
@@ -61,6 +62,8 @@ import hudson.util.DescribableList;
  */
 public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 	
+	private static final Logger LOG = Logger.getLogger(FixedMavenTestDataPublisher.class.getName());
+	
 	public FixedMavenTestDataPublisher(
 			DescribableList<TestDataPublisher, Descriptor<TestDataPublisher>> testDataPublishers) {
 		super(testDataPublishers);
@@ -70,31 +73,33 @@ public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
 			BuildListener listener) throws InterruptedException, IOException {
 
-		debug("FixedMavenTestDataPublisher perform", listener);
+		DescribableList<TestDataPublisher,Descriptor<TestDataPublisher>> testDataPublishers = getTestDataPublishers();
+		LOG.fine("Configured tdps: " + testDataPublishers.size());
 		
 		MavenModuleSetBuild msb = (MavenModuleSetBuild) build;
 		
 		Map<MavenModule, MavenBuild> moduleLastBuilds = msb.getModuleLastBuilds();
 		
-		debug("Found " + moduleLastBuilds.size() + " module builds", listener);
+		LOG.fine("Found " + moduleLastBuilds.size() + " module builds");
 		
 		for (MavenBuild moduleBuild : moduleLastBuilds.values()) {
-		
+			LOG.fine("ModuleBuild " + moduleBuild.getDisplayName());
 			SurefireReport report = moduleBuild.getAction(SurefireReport.class);
+			
 			if (report == null) {
-				return true;
+				LOG.fine("ModuleBuild " + moduleBuild.getParent().getName() +": No surefire report!");
+				continue;
 			}
 			
 			List<Data> data = new ArrayList<Data>();
-			if (getTestDataPublishers() != null) {
-				for (TestDataPublisher tdp : getTestDataPublishers()) {
-					Data d = tdp.getTestData(build, launcher, listener, report.getResult());
-					if (d != null) {
-						data.add(d);
-					}
+			for (TestDataPublisher tdp : testDataPublishers) {
+				LOG.fine("Invoke " + tdp);
+				Data d = tdp.getTestData(build, launcher, listener, report.getResult());
+				if (d != null) {
+					data.add(d);
 				}
 			}
-			
+		
 			report.setData(data);
 			moduleBuild.save();
 		}
@@ -102,12 +107,6 @@ public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 		return true;
 	}
 	
-	private void debug(String msg, BuildListener listener) {
-		if (StabilityTestDataPublisher.DEBUG) {
-			listener.getLogger().println(msg);
-		}
-	}
-
 	@Extension
 	public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
@@ -126,6 +125,8 @@ public class FixedMavenTestDataPublisher extends MavenTestDataPublisher {
 		public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
 			DescribableList<TestDataPublisher, Descriptor<TestDataPublisher>> testDataPublishers
                     = new DescribableList<TestDataPublisher, Descriptor<TestDataPublisher>>(Saveable.NOOP);
+			
+			LOG.fine("TestDataPublishers: " + TestDataPublisher.all() );
             try {
                 testDataPublishers.rebuild(req, formData, TestDataPublisher.all());
             } catch (IOException e) {
