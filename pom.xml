@@ -97,4 +97,10 @@
   		</plugins>
   	</pluginManagement>
   </build>
+  
+  <scm>
+    <connection>scm:git:ssh://github.com/jenkinsci/test-stability-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/test-stability-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/test-stability-plugin</url>
+  </scm>
 </project>
