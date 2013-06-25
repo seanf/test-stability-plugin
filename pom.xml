@@ -43,6 +43,7 @@
       tends to lag behind a bit
     -->
     <maven-hpi-plugin.version>1.95</maven-hpi-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
   
@@ -86,7 +87,7 @@
   									</goals>
   								</pluginExecutionFilter>
   								<action>
-  									<ignore></ignore>
+  									<execute/>
   								</action>
   							</pluginExecution>
   						</pluginExecutions>
