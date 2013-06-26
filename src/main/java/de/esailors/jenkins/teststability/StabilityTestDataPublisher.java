@@ -55,7 +55,7 @@ import de.esailors.jenkins.teststability.StabilityTestData.Result;
  */
 public class StabilityTestDataPublisher extends TestDataPublisher {
 	
-	public static final boolean DEBUG = true; 
+	public static final boolean DEBUG = false; 
 	
 	@DataBoundConstructor
 	public StabilityTestDataPublisher() {
