@@ -23,6 +23,8 @@
  */
 package de.esailors.jenkins.teststability;
 
+import javax.annotation.CheckForNull;
+
 import org.jvnet.localizer.Localizable;
 
 import hudson.model.HealthReport;
@@ -38,53 +40,74 @@ class StabilityTestAction extends TestAction {
 
 	private CircularStabilityHistory ringBuffer;
 	private String description;
+	
+	private int total;
+	private int failed;
+	private int testStatusChanges;
+	private int stability = 100;
+	private int flakiness;
 
-	public StabilityTestAction(CircularStabilityHistory ringBuffer) {
+	public StabilityTestAction(@CheckForNull CircularStabilityHistory ringBuffer) {
 		this.ringBuffer = ringBuffer;
+
+		if (ringBuffer != null) {
+			Result[] data = ringBuffer.getData();
+			this.total = data.length;
 		
-		if (this.ringBuffer == null || this.ringBuffer.isEmpty()) {
-			this.description = "No known failures. Stability 100 %";
+			computeStability(data);
+			computeFlakiness(data);
+		}
+				
+		if (this.stability == 100) {
+			this.description = "No known failures. Flakiness 0%, Stability 100%";
 		} else {
-			int total = 0, failed = 0;
-			for (Result r : this.ringBuffer.getData()) {
-				total++;
-				if (!r.passed) {
-					failed++;
-				}
-			}
-			
-			double stability = 100 * (total - failed) / total; 
-			
 			this.description =
-					String.format("Failed %d times in the last %d runs. Stability: %.0f %%", failed, total, stability);
+				String.format("Failed %d times in the last %d runs. Flakiness: %d%%, Stability: %d%%", failed, total, flakiness, stability);
 		}
 	}
 	
-	private int getStability() {
+	private void computeStability(Result[] data) {
 		
-		if (ringBuffer == null) {
-			return 100;
-		}
-		
-		int total = 0, failed = 0;
-		for (Result r : this.ringBuffer.getData()) {
-			total++;
+		for (Result r : data) {
 			if (!r.passed) {
 				failed++;
 			}
 		}
 		
-		int stability = 100 * (total - failed) / total;
-		return stability;
+		this.stability = 100 * (total - failed) / total;
+	}
+	
+	/**
+	 * Computes the flakiness in percent.
+	 */
+	private void computeFlakiness(Result[] data) {
+		Boolean previousPassed = null;
+		for (Result r : this.ringBuffer.getData()) {
+			boolean thisPassed = r.passed;
+			if (previousPassed != null && previousPassed != thisPassed) {
+				testStatusChanges++;
+			}
+			previousPassed = thisPassed;
+		}
+		
+		if (total > 1) {
+			this.flakiness = 100 * testStatusChanges / (total - 1);
+		} else {
+			this.flakiness = 0;
+		}
+	}
+	
+	public int getFlakiness() {
+		return this.flakiness;
 	}
 	
 	public String getBigImagePath() {
-		HealthReport healthReport = new HealthReport(getStability(), (Localizable)null);
+		HealthReport healthReport = new HealthReport(100 - flakiness, (Localizable)null);
 		return healthReport.getIconUrl("32x32");
 	}
 	
 	public String getSmallImagePath() {
-		HealthReport healthReport = new HealthReport(getStability(), (Localizable)null);
+		HealthReport healthReport = new HealthReport(100 - flakiness, (Localizable)null);
 		return healthReport.getIconUrl("16x16");
 	}
 
