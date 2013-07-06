@@ -23,6 +23,7 @@
  */
 package de.esailors.jenkins.teststability;
 
+import hudson.tasks.junit.ClassResult;
 import hudson.tasks.junit.TestAction;
 import hudson.tasks.junit.TestObject;
 import hudson.tasks.junit.TestResultAction.Data;
@@ -56,9 +57,8 @@ class StabilityTestData extends Data {
 	@Override
 	public List<? extends TestAction> getTestAction(TestObject testObject) {
 		
-		if (testObject instanceof CaseResult) {
-			CaseResult cr = (CaseResult) testObject;
-			CircularStabilityHistory ringBuffer = stability.get(cr.getId());
+		if (testObject instanceof CaseResult || testObject instanceof ClassResult) {
+			CircularStabilityHistory ringBuffer = stability.get(testObject.getId());
 			return Collections.singletonList(new StabilityTestAction(ringBuffer));
 		}
 		
