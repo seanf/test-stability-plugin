@@ -52,7 +52,7 @@
           <groupId>org.jenkins-ci.plugins</groupId>
           <artifactId>junit</artifactId>
           <scope>compile</scope>
-          <version>1.6</version>
+          <version>1.18</version>
       </dependency>
   </dependencies>
   
