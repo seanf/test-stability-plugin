@@ -1,4 +1,4 @@
-test-stability-plugin [![Build Status](https://buildhive.cloudbees.com/job/jenkinsci/job/test-stability-plugin/badge/icon)](https://buildhive.cloudbees.com/job/jenkinsci/job/test-stability-plugin/)
+test-stability-plugin [![Build Status](https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/test-stability-plugin)](https://jenkins.ci.cloudbees.com/job/plugins/job/test-stability-plugin/)
 =====================
 
 Test stability statistics plugin for Jenkins
