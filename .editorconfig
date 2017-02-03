@@ -1,0 +1,25 @@
+# EditorConfig: http://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# default settings for most files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = false
+
+[*.java]
+indent_style = tab
+tab_width = 4
+# for intellij idea:
+continuation_indent_size = 8 # should be double the tab_width (ie two tabs)
+
+[*.jelly]
+indent_style = space
+indent_size = 2
+
+[*.xml]
+indent_style = space
+indent_size = 2
