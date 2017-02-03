@@ -40,14 +40,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
-
-import javax.annotation.Nonnull;
 
 /**
  * {@link TestDataPublisher} for the test stability history.
@@ -145,7 +144,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		hudson.tasks.test.TestResult previousResult = getPreviousResult(result);
 		while (previousResult != null) {
 			testResultsFromNewestToOldest.add(
-					new Result(previousResult.getOwner().getNumber(), previousResult.isPassed()));
+					new Result(previousResult.getRun().getNumber(), previousResult.isPassed()));
 			previousResult = previousResult.getPreviousResult();
 		}
 
