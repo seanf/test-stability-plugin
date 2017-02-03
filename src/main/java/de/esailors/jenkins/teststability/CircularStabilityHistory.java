@@ -187,6 +187,7 @@ public class CircularStabilityHistory {
 				int buildNumber = Integer.parseInt(split2[0]);
 				
 				// TODO: check that '0' is the only other allowed value:
+				// [see dataToString(): if (d.passed)]
 				boolean buildResult = "1".equals(split2[1]) ? true : false;
 				
 				d[i] = new Result(buildNumber, buildResult);

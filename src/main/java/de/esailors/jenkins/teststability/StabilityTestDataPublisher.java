@@ -65,6 +65,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 	public Data contributeTestData(Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher, TaskListener listener,
 								   TestResult testResult) throws IOException, InterruptedException {
 
+		// keyed by TestResult ID
 		Map<String,CircularStabilityHistory> stabilityHistoryPerTest = new HashMap<String,CircularStabilityHistory>();
 		
 		Collection<hudson.tasks.test.TestResult> classAndCaseResults = getClassAndCaseResults(testResult);
@@ -138,7 +139,10 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			CircularStabilityHistory previousRingBuffer) {
 		return previousRingBuffer == null && result.getFailCount() > 0;
 	}
-	
+
+	/**
+	 * Build up the initial history for a single TestResult
+	 */
 	private void buildUpInitialHistory(CircularStabilityHistory ringBuffer, hudson.tasks.test.TestResult result, int number) {
 		List<Result> testResultsFromNewestToOldest = new ArrayList<Result>(number);
 		hudson.tasks.test.TestResult previousResult = getPreviousResult(result);
@@ -218,7 +222,11 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			save();
             return super.configure(req,json);
 		}
-		
+
+		/**
+		 * Maximum number of history items (from configuration)
+		 * @return number of items
+		 */
 		public int getMaxHistoryLength() {
 			return this.maxHistoryLength;
 		}
