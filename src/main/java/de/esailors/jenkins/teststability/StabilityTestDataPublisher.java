@@ -41,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -114,7 +116,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		}
 	}
 
-	private CircularStabilityHistory getPreviousHistory(hudson.tasks.test.TestResult result) {
+	private @Nullable CircularStabilityHistory getPreviousHistory(hudson.tasks.test.TestResult result) {
 		hudson.tasks.test.TestResult previous = getPreviousResult(result);
 
 		if (previous != null) {
@@ -158,7 +160,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 	}
 
 	
-	private hudson.tasks.test.TestResult getPreviousResult(hudson.tasks.test.TestResult result) {
+	private @Nullable hudson.tasks.test.TestResult getPreviousResult(hudson.tasks.test.TestResult result) {
 		try {
 			return result.getPreviousResult();
 		} catch (RuntimeException e) {

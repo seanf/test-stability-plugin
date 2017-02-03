@@ -24,6 +24,7 @@
 package de.esailors.jenkins.teststability;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 
 import org.jvnet.localizer.Localizable;
 
@@ -120,15 +121,15 @@ class StabilityTestAction extends TestAction {
 		return this.description;
 	}
 	
-	public String getIconFileName() {
+	public @Nullable String getIconFileName() {
 		return null;
 	}
 	
-	public String getDisplayName() {
+	public @Nullable String getDisplayName() {
 		return null;
 	}
 
-	public String getUrlName() {
+	public @Nullable String getUrlName() {
 		return null;
 	}
 	
