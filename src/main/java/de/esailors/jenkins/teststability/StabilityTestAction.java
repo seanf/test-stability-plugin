@@ -101,7 +101,11 @@ class StabilityTestAction extends TestAction {
 	public int getFlakiness() {
 		return this.flakiness;
 	}
-	
+
+	int getStability() {
+		return stability;
+	}
+
 	public String getBigImagePath() {
 		HealthReport healthReport = new HealthReport(100 - flakiness, (Localizable)null);
 		return healthReport.getIconUrl("32x32");

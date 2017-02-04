@@ -57,7 +57,8 @@ import de.esailors.jenkins.teststability.StabilityTestData.Result;
  */
 public class StabilityTestDataPublisher extends TestDataPublisher {
 	
-	public static final boolean DEBUG = false; 
+//	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 	
 	@DataBoundConstructor
 	public StabilityTestDataPublisher() {
@@ -71,21 +72,27 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		Map<String,CircularStabilityHistory> stabilityHistoryPerTest = new HashMap<String,CircularStabilityHistory>();
 		
 		Collection<hudson.tasks.test.TestResult> classAndCaseResults = getClassAndCaseResults(testResult);
-		debug("Found " + classAndCaseResults.size() + " test results", listener);
+		if (DEBUG) {
+			debug("Found " + classAndCaseResults.size() + " test results",
+					listener);
+		}
+		Collection<hudson.tasks.test.TestResult> resultsWithNoHistory = new ArrayList<hudson.tasks.test.TestResult>();
+		int runNumber = run.getNumber();
 		for (hudson.tasks.test.TestResult result: classAndCaseResults) {
 			
+			// This is the first place we call TestResult.getPreviousResult
 			CircularStabilityHistory history = getPreviousHistory(result);
 			
 			if (history != null) {
 				if (result.isPassed()) {
-					history.add(run.getNumber(), true);
+					history.add(runNumber, true);
 					
 					if (history.isAllPassed()) {
 						history = null;
 					}
 					
 				} else if (result.getFailCount() > 0) {
-					history.add(run.getNumber(), false);
+					history.add(runNumber, false);
 				}
 				// else test is skipped and we leave history unchanged
 				
@@ -95,23 +102,24 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 					stabilityHistoryPerTest.remove(result.getId());
 				}
 			} else if (isFirstTestFailure(result, history)) {
-				debug("Found failed test " + result.getId(), listener);
-				int maxHistoryLength = getDescriptor().getMaxHistoryLength();
-				CircularStabilityHistory ringBuffer = new CircularStabilityHistory(maxHistoryLength);
-				
-				// add previous results (if there are any):
-				buildUpInitialHistory(ringBuffer, result, maxHistoryLength - 1);
-				
-				ringBuffer.add(run.getNumber(), false);
-				stabilityHistoryPerTest.put(result.getId(), ringBuffer);
+				if (DEBUG) {
+					debug("Found failed test " + result.getId(), listener);
+				}
+				// TODO should we gather history for any result which lacks it, pass or fail?
+				resultsWithNoHistory.add(result);
 			}
+		}
+		int maxHistoryLength = getDescriptor().getMaxHistoryLength();
+		if (!resultsWithNoHistory.isEmpty()) {
+			buildUpInitialHistory(stabilityHistoryPerTest, runNumber,
+					resultsWithNoHistory, maxHistoryLength);
 		}
 		
 		return new StabilityTestData(stabilityHistoryPerTest);
 	}
-	
+
 	private void debug(String msg, TaskListener listener) {
-		if (StabilityTestDataPublisher.DEBUG) {
+		if (DEBUG) {
 			listener.getLogger().println(msg);
 		}
 	}
@@ -137,29 +145,53 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		return null;
 	}
 
+	/**
+	 * Is this a failed test with no history recorded yet?
+	 */
 	private boolean isFirstTestFailure(hudson.tasks.test.TestResult result,
 			CircularStabilityHistory previousRingBuffer) {
 		return previousRingBuffer == null && result.getFailCount() > 0;
 	}
 
 	/**
-	 * Build up the initial history for a single TestResult
+	 * Build up the initial histories for a collection of (failing) TestResults
 	 */
-	private void buildUpInitialHistory(CircularStabilityHistory ringBuffer, hudson.tasks.test.TestResult result, int number) {
-		List<Result> testResultsFromNewestToOldest = new ArrayList<Result>(number);
-		hudson.tasks.test.TestResult previousResult = getPreviousResult(result);
-		while (previousResult != null) {
-			testResultsFromNewestToOldest.add(
-					new Result(previousResult.getRun().getNumber(), previousResult.isPassed()));
-			previousResult = previousResult.getPreviousResult();
-		}
+	void buildUpInitialHistory(
+			// keyed by TestResult ID
+			Map<String, CircularStabilityHistory> stabilityHistoryPerTest,
+			int runNumber,
+			Collection<? extends hudson.tasks.test.TestResult> failingResults,
+			int maxHistoryLength) {
+		for (hudson.tasks.test.TestResult result: failingResults) {
+			CircularStabilityHistory ringBuffer = new CircularStabilityHistory(maxHistoryLength);
 
-		for (int i = testResultsFromNewestToOldest.size() - 1; i >= 0; i--) {
-			ringBuffer.add(testResultsFromNewestToOldest.get(i));
+			// add previous results (if there are any):
+			List<Result> testResultsFromNewestToOldest = new ArrayList<Result>(
+					maxHistoryLength - 1);
+			// This is the second place we call TestResult.getPreviousResult
+			hudson.tasks.test.TestResult previousResult = getPreviousResult(result);
+			while (previousResult != null) {
+                testResultsFromNewestToOldest.add(
+                        new Result(previousResult.getRun().getNumber(), previousResult.isPassed()));
+                previousResult = previousResult.getPreviousResult();
+            }
+
+			for (int i = testResultsFromNewestToOldest.size() - 1; i >= 0; i--) {
+                ringBuffer.add(testResultsFromNewestToOldest.get(i));
+            }
+
+            // in case we start collecting history for passing tests too:
+			boolean passed = result.isPassed();
+			ringBuffer.add(runNumber, passed);
+			stabilityHistoryPerTest.put(result.getId(), ringBuffer);
 		}
 	}
-
 	
+	/**
+	 * Gets the previous result for any test result (case, class, package or build)
+	 * @param result the previous result
+	 * @return null if no previous result, or in case of error
+	 */
 	private @Nullable hudson.tasks.test.TestResult getPreviousResult(hudson.tasks.test.TestResult result) {
 		try {
 			return result.getPreviousResult();
@@ -189,7 +221,12 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			return null;
 		}
 	}
-	
+
+	/**
+	 * Collects all the CaseResults and ClassResults nested inside an entire build's TestResult
+	 * @param testResult the build's TestResult
+	 * @return a collection of the test class results and test case results in the entire build
+	 */
 	private Collection<hudson.tasks.test.TestResult> getClassAndCaseResults(TestResult testResult) {
 		List<hudson.tasks.test.TestResult> results = new ArrayList<hudson.tasks.test.TestResult>();
 		
