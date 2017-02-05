@@ -21,7 +21,10 @@ import hudson.tasks.junit.TestResultAction;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Answers.RETURNS_SMART_NULLS;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +67,8 @@ public class StabilityTestDataPublisherTest {
 		when(result.isPassed()).thenReturn(true);
 		Map<String, CircularStabilityHistory> histories = new HashMap<String, CircularStabilityHistory>();
 		int buildNumber = 5;
-		publisher.buildUpInitialHistory(histories, buildNumber, singletonList(result), maxHistoryLength);
+		publisher.buildUpInitialHistory(histories, buildNumber, singletonList(result), maxHistoryLength,
+				run);
 		assertThat(histories.get("resultID")).isNotNull();
 		assertThat(histories.get("resultID").getData()).hasSize(1);
 		assertThat(histories.get("resultID").getData()[0].buildNumber).isEqualTo(
@@ -81,7 +85,8 @@ public class StabilityTestDataPublisherTest {
 		when(result.isPassed()).thenReturn(true);
 		Map<String, CircularStabilityHistory> histories = new HashMap<String, CircularStabilityHistory>();
 		int buildNumber = 5;
-		publisher.buildUpInitialHistory(histories, buildNumber, singletonList(result), maxHistoryLength);
+		publisher.buildUpInitialHistory(histories, buildNumber, singletonList(result), maxHistoryLength,
+				run);
 		assertThat(histories.get("resultID")).isNotNull();
 		assertThat(histories.get("resultID").getData()).hasSize(1);
 		assertThat(histories.get("resultID").getData()[0].buildNumber).isEqualTo(
@@ -94,25 +99,13 @@ public class StabilityTestDataPublisherTest {
 	public void contributeTestData() throws Exception {
 
 		// create a lot of results for tests which have passed (by default)
-		RootInfo root = new RootInfo();
-		List<PackageInfo> packages = new ArrayList<PackageInfo>();
-		for (int p = 0; p < 10; p++) {
-			PackageInfo pkg = new PackageInfo(root.mock, p);
-			packages.add(pkg);
-			List<ClassInfo> classes = new ArrayList<ClassInfo>();
-			for (int c = 0; c < 10; c++) {
-				ClassInfo cls = new ClassInfo(pkg.mock, c);
-				classes.add(cls);
-				List<CaseInfo> cases = new ArrayList<CaseInfo>();
-				for (int t = 0; t < 10; t++) {
-					CaseInfo caseResult = new CaseInfo(cls.mock, t);
-					cases.add(caseResult);
-				}
-				cls.addChildren(cases);;
-			}
-			pkg.addChildren(classes);
-		}
-		root.addChildren(packages);
+		RootInfo root = buildTestResults(10, 10, 10);
+		RootInfo previousRoot = buildTestResults(5, 8, 10);
+
+		when(root.mock.getPreviousResult()).thenReturn(previousRoot.mock);
+		Run<?, ?> previousRun = mock(Run.class, RETURNS_SMART_NULLS);
+		doReturn(previousRun).when(previousRoot.mock).getRun();
+		when(root.mock.getResultInRun(previousRun)).thenReturn(previousRoot.mock);
 
 		// failedTest1 has passed once before, never failed before - stability 50%
 		CaseInfo failedTest1 = root.pkg(2).cls(5).test(8);
@@ -134,6 +127,9 @@ public class StabilityTestDataPublisherTest {
 		when(failedTest1.mock.getPreviousResult()).thenReturn(failedTest1Previous);
 //		when(failedTest1.mock.getPreviousResult()).thenReturn(failedTest1Previous).thenThrow(new Error());
 
+		when(failedTest1.mock.getResultInRun((Run<?, ?>) any())).thenReturn(failedTest1Previous);
+
+
 		// failedTest2 has never run before - stability 0%
 		CaseInfo failedTest2 = root.pkg(3).cls(6).test(7);
 		when(failedTest2.mock.getFailCount()).thenReturn(1);
@@ -146,6 +142,30 @@ public class StabilityTestDataPublisherTest {
 
 		assertStability(data, failedTest1, 50);
 		assertStability(data, failedTest2, 0);
+	}
+
+	private RootInfo buildTestResults(int numPackages, int numClasses,
+			int numCases) {
+		RootInfo root = new RootInfo();
+		List<PackageInfo> packages = new ArrayList<PackageInfo>();
+		for (int p = 0; p < numPackages; p++) {
+			PackageInfo pkg = new PackageInfo(root.mock, p);
+			packages.add(pkg);
+			List<ClassInfo> classes = new ArrayList<ClassInfo>();
+			for (int c = 0; c < numClasses; c++) {
+				ClassInfo cls = new ClassInfo(pkg.mock, c);
+				classes.add(cls);
+				List<CaseInfo> cases = new ArrayList<CaseInfo>();
+				for (int t = 0; t < numCases; t++) {
+					CaseInfo caseResult = new CaseInfo(cls.mock, t);
+					cases.add(caseResult);
+				}
+				cls.addChildren(cases);;
+			}
+			pkg.addChildren(classes);
+		}
+		root.addChildren(packages);
+		return root;
 	}
 
 	private void assertStability(TestResultAction.Data data,

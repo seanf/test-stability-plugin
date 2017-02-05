@@ -78,10 +78,16 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		}
 		Collection<hudson.tasks.test.TestResult> resultsWithNoHistory = new ArrayList<hudson.tasks.test.TestResult>();
 		int runNumber = run.getNumber();
+		TestResult previousBuild = getPrevious(testResult, listener);
+		// this may not be the preceding Run, if that Run has not produced a TestResult (yet)
+		Run<?, ?> previousRun = previousBuild != null ? previousBuild.getRun() : null;
 		for (hudson.tasks.test.TestResult result: classAndCaseResults) {
-			
-			// This is the first place we call TestResult.getPreviousResult
-			CircularStabilityHistory history = getPreviousHistory(result);
+			// get corresponding Class/Case Result from previous Run, if any
+			hudson.tasks.test.TestResult previousResult =
+					previousRun != null ? result.getResultInRun(previousRun) : null;
+
+			// see if previous result has StabilityTestAction with history
+			CircularStabilityHistory history = getPreviousHistory(previousResult);
 			
 			if (history != null) {
 				if (result.isPassed()) {
@@ -112,21 +118,42 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		int maxHistoryLength = getDescriptor().getMaxHistoryLength();
 		if (!resultsWithNoHistory.isEmpty()) {
 			buildUpInitialHistory(stabilityHistoryPerTest, runNumber,
-					resultsWithNoHistory, maxHistoryLength);
+					resultsWithNoHistory, maxHistoryLength, previousRun);
 		}
 		
 		return new StabilityTestData(stabilityHistoryPerTest);
 	}
 
+	/**
+	 * Gets the overall TestResult for the previous build (skipping builds which lack a TestResult)
+	 */
+	@Nullable private TestResult getPrevious(TestResult testResult, TaskListener listener) {
+		// TODO use previousCompletedBuild to handle concurrent builds
+		hudson.tasks.test.TestResult previous = testResult.getPreviousResult();
+		TestResult previousBuild;
+		if (previous == null) {
+			return null;
+		} else if (previous instanceof TestResult) {
+			previousBuild = (TestResult) previous;
+		} else {
+			warn("TestResult.previous is of unexpected class: " + previous.getClass(), listener);
+			previousBuild = null;
+		}
+		return previousBuild;
+	}
+
 	private void debug(String msg, TaskListener listener) {
 		if (DEBUG) {
-			listener.getLogger().println(msg);
+			listener.getLogger().println("StabilityTestDataPublisher DEBUG: " +msg);
 		}
 	}
 
-	private @Nullable CircularStabilityHistory getPreviousHistory(hudson.tasks.test.TestResult result) {
-		hudson.tasks.test.TestResult previous = getPreviousResult(result);
+	private void warn(String msg, TaskListener listener) {
+		listener.getLogger().println("StabilityTestDataPublisher WARNING: " + msg);
+	}
 
+	private @Nullable CircularStabilityHistory getPreviousHistory(
+			hudson.tasks.test.TestResult previous) {
 		if (previous != null) {
 			StabilityTestAction previousAction = previous.getTestAction(StabilityTestAction.class);
 			if (previousAction != null) {
@@ -161,18 +188,23 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			Map<String, CircularStabilityHistory> stabilityHistoryPerTest,
 			int runNumber,
 			Collection<? extends hudson.tasks.test.TestResult> failingResults,
-			int maxHistoryLength) {
+			int maxHistoryLength, Run<?, ?> previousRun) {
+
+		// TODO outer loop through all previous Runs
 		for (hudson.tasks.test.TestResult result: failingResults) {
 			CircularStabilityHistory ringBuffer = new CircularStabilityHistory(maxHistoryLength);
 
 			// add previous results (if there are any):
 			List<Result> testResultsFromNewestToOldest = new ArrayList<Result>(
 					maxHistoryLength - 1);
-			// This is the second place we call TestResult.getPreviousResult
-			hudson.tasks.test.TestResult previousResult = getPreviousResult(result);
+			// get corresponding result from previous Run, if any
+			hudson.tasks.test.TestResult previousResult =
+					previousRun != null ? result.getResultInRun(previousRun) : null;
+			// TODO remove this inner loop through previous Runs
 			while (previousResult != null) {
                 testResultsFromNewestToOldest.add(
                         new Result(previousResult.getRun().getNumber(), previousResult.isPassed()));
+				// TODO use previousCompletedBuild to handle concurrent builds
                 previousResult = previousResult.getPreviousResult();
             }
 
@@ -194,6 +226,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 	 */
 	private @Nullable hudson.tasks.test.TestResult getPreviousResult(hudson.tasks.test.TestResult result) {
 		try {
+			// TODO use previousCompletedBuild to handle concurrent builds
 			return result.getPreviousResult();
 		} catch (RuntimeException e) {
 			// there's a bug (only on freestyle builds!) that getPreviousResult may throw a NPE (only for ClassResults!) in Jenkins 1.480
