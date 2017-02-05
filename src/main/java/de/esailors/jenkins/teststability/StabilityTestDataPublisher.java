@@ -116,10 +116,8 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			}
 		}
 		int maxHistoryLength = getDescriptor().getMaxHistoryLength();
-		if (!resultsWithNoHistory.isEmpty()) {
-			buildUpInitialHistory(stabilityHistoryPerTest, runNumber,
-					resultsWithNoHistory, maxHistoryLength, previousRun);
-		}
+		buildUpInitialHistory(stabilityHistoryPerTest, runNumber,
+				resultsWithNoHistory, maxHistoryLength, previousRun);
 		
 		return new StabilityTestData(stabilityHistoryPerTest);
 	}
@@ -189,6 +187,19 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			int runNumber,
 			Collection<? extends hudson.tasks.test.TestResult> failingResults,
 			int maxHistoryLength, Run<?, ?> previousRun) {
+		if (failingResults.isEmpty()) return;
+
+		Run<?, ?> run = previousRun;
+		int i = 0;
+		do {
+			// TODO concurrent builds?
+			run = run.getPreviousBuild();
+		} while (run != null && i < maxHistoryLength);
+
+
+//		for (int i = 0; i < maxHistoryLength; i++){
+//
+//		}
 
 		// TODO outer loop through all previous Runs
 		for (hudson.tasks.test.TestResult result: failingResults) {
@@ -208,6 +219,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
                 previousResult = previousResult.getPreviousResult();
             }
 
+            // iterate from oldest to newest, adding to ringBuffer in that order
 			for (int i = testResultsFromNewestToOldest.size() - 1; i >= 0; i--) {
                 ringBuffer.add(testResultsFromNewestToOldest.get(i));
             }
