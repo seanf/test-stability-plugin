@@ -24,10 +24,9 @@
 package de.esailors.jenkins.teststability;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Descriptor;
+import hudson.model.*;
 import hudson.tasks.junit.PackageResult;
 import hudson.tasks.junit.TestDataPublisher;
 import hudson.tasks.junit.TestResult;
@@ -48,6 +47,8 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
+import javax.annotation.Nonnull;
+
 /**
  * {@link TestDataPublisher} for the test stability history.
  * 
@@ -62,10 +63,9 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 	}
 	
 	@Override
-	public Data getTestData(AbstractBuild<?, ?> build, Launcher launcher,
-			BuildListener listener, TestResult testResult) throws IOException,
-			InterruptedException {
-		
+	public Data contributeTestData(Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher, TaskListener listener,
+								   TestResult testResult) throws IOException, InterruptedException {
+
 		Map<String,CircularStabilityHistory> stabilityHistoryPerTest = new HashMap<String,CircularStabilityHistory>();
 		
 		Collection<hudson.tasks.test.TestResult> classAndCaseResults = getClassAndCaseResults(testResult);
@@ -76,14 +76,14 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 			
 			if (history != null) {
 				if (result.isPassed()) {
-					history.add(build.getNumber(), true);
+					history.add(run.getNumber(), true);
 					
 					if (history.isAllPassed()) {
 						history = null;
 					}
 					
 				} else if (result.getFailCount() > 0) {
-					history.add(build.getNumber(), false);
+					history.add(run.getNumber(), false);
 				}
 				// else test is skipped and we leave history unchanged
 				
@@ -100,7 +100,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 				// add previous results (if there are any):
 				buildUpInitialHistory(ringBuffer, result, maxHistoryLength - 1);
 				
-				ringBuffer.add(build.getNumber(), false);
+				ringBuffer.add(run.getNumber(), false);
 				stabilityHistoryPerTest.put(result.getId(), ringBuffer);
 			}
 		}
@@ -108,7 +108,7 @@ public class StabilityTestDataPublisher extends TestDataPublisher {
 		return new StabilityTestData(stabilityHistoryPerTest);
 	}
 	
-	private void debug(String msg, BuildListener listener) {
+	private void debug(String msg, TaskListener listener) {
 		if (StabilityTestDataPublisher.DEBUG) {
 			listener.getLogger().println(msg);
 		}
