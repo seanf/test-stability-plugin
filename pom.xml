@@ -20,6 +20,12 @@
   		<email>christoph.kutzinsk@esailors.de</email>
   		<timezone>-1</timezone>
   	</developer>
+  	<developer>
+  		<id>seanf</id>
+  		<name>Sean Flanigan</name>
+  		<email>sflaniga@redhat.com</email>
+  		<timezone>+10</timezone>
+  	</developer>
   </developers>
 
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
