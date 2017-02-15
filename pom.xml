@@ -114,13 +114,11 @@
 
   <distributionManagement>
     <repository>
-      <id>central</id>
-      <name>jenkinsci-releases</name>
+      <id>repo.jenkins-ci.org</id>
       <url>https://repo.jenkins-ci.org/releases</url>
     </repository>
     <snapshotRepository>
-      <id>snapshots</id>
-      <name>jenkinsci-snapshots</name>
+      <id>repo.jenkins-ci.org</id>
       <url>https://repo.jenkins-ci.org/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
