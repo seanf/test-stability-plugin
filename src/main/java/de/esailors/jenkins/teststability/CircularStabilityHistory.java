@@ -33,6 +33,8 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 import de.esailors.jenkins.teststability.StabilityTestData.Result;
 
+import javax.annotation.Nullable;
+
 /**
  * Circular history of test results.
  * <p>
@@ -94,10 +96,12 @@ public class CircularStabilityHistory {
 	
 	public static class ConverterImpl implements Converter {
 
-		public boolean canConvert(@SuppressWarnings("rawtypes") Class type) {
-			return CircularStabilityHistory.class.isAssignableFrom(type);
+		@Override
+		public boolean canConvert(@SuppressWarnings("rawtypes") @Nullable Class type) {
+			return type != null && CircularStabilityHistory.class.isAssignableFrom(type);
 		}
 
+		@Override
 		public void marshal(Object source, HierarchicalStreamWriter writer,
 				MarshallingContext context) {
 			CircularStabilityHistory b = (CircularStabilityHistory) source;
@@ -141,6 +145,7 @@ public class CircularStabilityHistory {
 			return buf.toString();
 		}
 
+		@Override
 		public CircularStabilityHistory unmarshal(HierarchicalStreamReader r,
 				UnmarshallingContext context) {
 			
